@@ -1,0 +1,68 @@
+basePath: /
+definitions:
+  main.SendRequest:
+    properties:
+      phone:
+        type: string
+    type: object
+  main.VerifyRequest:
+    properties:
+      code:
+        type: string
+      phone:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API для генерации и проверки TOTP-кодов, отправляемых по SMS
+  title: TOTP SMS Auth API
+  version: "1.0"
+paths:
+  /send:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Phone
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/main.SendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Код отправлен
+          schema:
+            type: string
+        "400":
+          description: Ошибка
+          schema:
+            type: string
+      summary: Сгенерировать и отправить TOTP-код по номеру телефона
+  /verify:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Проверка кода
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/main.VerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Код верен
+          schema:
+            type: string
+        "401":
+          description: Неверный код
+          schema:
+            type: string
+      summary: Проверить введённый TOTP-код
+swagger: "2.0"
