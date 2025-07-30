@@ -4,79 +4,69 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
+
+	"github.com/spf13/viper"
 )
 
 // Config holds all application settings loaded from environment.
 type Config struct {
-	BindAddr  string   // address for HTTP server binding
-	WhiteList []string // allowed IPs for access control
-	Interval  int      // minimum interval between SMS sends
-	Period    int      // TOTP period
-	Digits    int      // number of digits in TOTP code
-	Algorithm string   // hash algorithm for TOTP
-	Skew      int      // allowed clock skew in periods
+	BindAddr  string   `mapstructure:"bind_addr"`                                     // address for HTTP server binding
+	WhiteList []string `mapstructure:"white_list"`                                    // allowed IPs for access control
+	Interval  int      `mapstructure:"interval" validate:"gte=0"`                     // minimum interval between SMS sends
+	Period    int      `mapstructure:"period"  validate:"gt=0"`                       // TOTP period
+	Digits    int      `mapstructure:"digits"  validate:"gt=0,lte=10"`                // number of digits in TOTP code
+	Algorithm string   `mapstructure:"algorithm" validate:"oneof=SHA1 SHA256 SHA512"` // hash algorithm for TOTP
+	Skew      int      `mapstructure:"skew"`                                          // allowed clock skew in periods
+	Debug     bool     `mapstructure:"debug" env:"TOTP_DEBUG"`
+	LogLevel  string   `mapstructure:"log_level" env:"TOTP_LOG_LEVEL" default:"info"`
 
 	SMSC struct {
-		Login    string `mapstructure:"login" env:"SMSC_LOGIN" validate:"required"`
-		Password string `mapstructure:"password" env:"SMSC_PASSWORD" validate:"required"`
-		URL      string `mapstructure:"url" env:"SMSC_URL" default:"https://smsc.ru/sys/send.php"`
+		Login    string `mapstructure:"login"  validate:"required"`
+		Password string `mapstructure:"password"  validate:"required"`
+		URL      string `mapstructure:"url" default:"https://smsc.ru/sys/send.php"`
 	} `mapstructure:"smsc"`
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
 // LoadConfig reads environment variables and returns Config.
 // It falls back to sensible defaults if variables are not set.
 func LoadConfig() (*Config, error) {
-	cfg := &Config{
-		BindAddr:  getEnv("TOTP_BIND", ":8080"),
-		WhiteList: splitEnv("TOTP_WHITELIST", ","),
-		Interval:  getEnvInt("TOTP_INTERVAL", 30),
-		Period:    getEnvInt("TOTP_PERIOD", 60),
-		Digits:    getEnvInt("TOTP_DIGITS", 6),
-		Algorithm: strings.ToUpper(getEnv("TOTP_ALGO", "SHA1")),
-		Skew:      getEnvInt("TOTP_SKEW", 1),
-	}
-	return cfg, nil
-}
 
-// getEnv returns value or default.
-func getEnv(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
+	v := viper.New()
 
-// splitEnv splits env var by sep or returns empty slice.
-func splitEnv(key, sep string) []string {
-	val := os.Getenv(key)
-	if val == "" {
-		return nil
-	}
-	parts := strings.Split(val, sep)
-	for i := range parts {
-		parts[i] = strings.TrimSpace(parts[i])
-	}
-	return parts
-}
+	v.SetDefault("bind_addr", ":8080")
+	v.SetDefault("interval", 30)
+	v.SetDefault("period", 60)
+	v.SetDefault("digits", 6)
+	v.SetDefault("algorithm", "SHA1")
+	v.SetDefault("skew", 1)
+	v.SetDefault("smsc.url", "https://smsc.ru/sys/send.php")
 
-// getEnvInt parses int or returns default.
-func getEnvInt(key string, def int) int {
-	if v := os.Getenv(key); v != "" {
-		var i int
-		if _, err := fmt.Sscanf(v, "%d", &i); err == nil {
-			return i
+	v.SetEnvPrefix("TOTP")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	var usedFile string
+	if fileExists("config.yaml") {
+		usedFile = "config.yaml"
+	}
+
+	if usedFile != "" {
+		v.SetConfigFile(usedFile)
+		if err := v.ReadInConfig(); err != nil {
+			return nil, fmt.Errorf("read config file %q: %w", usedFile, err)
 		}
+	} else {
+		v.AutomaticEnv()
 	}
-	return def
-}
 
-// getEnvDuration parses seconds or returns default.
-func getEnvDuration(key string, defSec int) time.Duration {
-	if v := os.Getenv(key); v != "" {
-		if d, err := time.ParseDuration(v + "s"); err == nil {
-			return d
-		}
+	var cfg Config
+	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
-	return time.Duration(defSec) * time.Second
+
+	return &cfg, nil
 }

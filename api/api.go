@@ -12,7 +12,7 @@ import (
 
 // SendRequest represents request for /send endpoint.
 type SendRequest struct {
-	Phone string `json:"phone" binding:"required"`
+	Phone string `json:"phone" binding:"required,e164"`
 }
 
 // VerifyRequest represents request for /verify endpoint.

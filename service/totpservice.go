@@ -11,13 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// OTPService defines business logic for TOTP.
-type OTPService interface {
-	GenerateCode(key string) (code string, err error)
-	ValidateCode(key, code string) bool
-	CanSend(key string) (bool, time.Duration)
-}
-
 // TotpService implements OTPService.
 type TotpService struct {
 	store    storage.Storage
@@ -28,17 +21,23 @@ type TotpService struct {
 	skew     uint
 	interval time.Duration
 	log      *zap.SugaredLogger
+	notifier Notifier
 }
 
 // NewTotpService constructs TotpService with its own logger.
-func NewTotpService(store storage.Storage, issuer string,
-	period uint, digits otp.Digits, algo otp.Algorithm,
-	skew uint, interval time.Duration) *TotpService {
+func NewTotpService(
+	store storage.Storage,
+	issuer string,
+	period uint,
+	digits otp.Digits,
+	algo otp.Algorithm,
+	skew uint,
+	interval time.Duration,
+	notifier Notifier,
+) *TotpService {
 
-	svcLog, err := logger.New("TotpService")
-	if err != nil {
-		panic(err)
-	}
+	svcLog := logger.New("TotpService")
+
 	return &TotpService{
 		store:    store,
 		issuer:   issuer,
@@ -48,6 +47,7 @@ func NewTotpService(store storage.Storage, issuer string,
 		skew:     skew,
 		interval: interval,
 		log:      svcLog,
+		notifier: notifier,
 	}
 }
 
@@ -90,7 +90,18 @@ func (s *TotpService) GenerateCode(key string) (string, error) {
 		s.log.Errorw("GenerateCodeCustom error", "err", err)
 		return "", err
 	}
-	s.log.Infow("Code generated", "code", code)
+	s.log.Debugw("Code generated", "code", code)
+
+	s.log.Debugw("Starting send code", "phone", key)
+	message := "Ваш код:" + code
+
+	err = s.notifier.Send(key, message)
+	if err != nil {
+		s.log.Errorw("Send code error", "err", err)
+		return "", err
+	}
+
+	s.log.Infow("Code generated and sended", "code", code)
 	return code, nil
 }
 

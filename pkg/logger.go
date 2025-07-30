@@ -1,22 +1,34 @@
 package logger
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var Log *zap.SugaredLogger
 
-// Init initializes the global logger with module name and timestamp.
-func New(module string) (*zap.SugaredLogger, error) {
-	cfg := zap.NewProductionConfig()
-	cfg.InitialFields = map[string]interface{}{"module": module}
-	cfg.EncoderConfig.TimeKey = "timestamp"
-	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	base, err := cfg.Build()
-	if err != nil {
-		return nil, err
+func Init(level string) error {
+	var zapLevel zapcore.Level
+	if err := zapLevel.UnmarshalText([]byte(level)); err != nil {
+		return fmt.Errorf("invalid log level %q: %w", level, err)
 	}
-	return base.Sugar(), nil
+
+	cfg := zap.NewProductionConfig()
+	cfg.Level = zap.NewAtomicLevelAt(zapLevel)
+	logger, err := cfg.Build(zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	if err != nil {
+		return fmt.Errorf("build logger: %w", err)
+	}
+	Log = logger.Sugar()
+	zap.ReplaceGlobals(logger)
+
+	return nil
+}
+
+func New(module string) *zap.SugaredLogger {
+	return zap.L().
+		With(zap.String("module", module)).
+		Sugar()
 }

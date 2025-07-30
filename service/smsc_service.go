@@ -17,10 +17,8 @@ func NewSMSCService(login string,
 	password string,
 	URL string,
 ) *SMSCService {
-	svcLog, err := logger.New("SMSCService")
-	if err != nil {
-		panic(err)
-	}
+	svcLog := logger.New("SMSCService")
+
 	smscClient, err := smsc.New(smsc.Config{
 		Login:    login,
 		Password: password,
@@ -36,11 +34,9 @@ func (s *SMSCService) Send(to, text string) error {
 	s.log.Debugw("Start sending SMS")
 	result, err := s.client.Send(text, []string{to})
 	if err != nil {
-		s.log.Errorw("smsc: send error:", err)
 		return fmt.Errorf("smsc: send error: %+v", err)
 	}
 	if result == nil || result.ID == 0 {
-		s.log.Errorw("smsc: invalid result:", result)
 		return fmt.Errorf("smsc: invalid result: %+v", result)
 	}
 

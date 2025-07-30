@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	logger "github.com/NlightN22/OTPSMSProvider/pkg"
 	service "github.com/NlightN22/OTPSMSProvider/service"
 	storage "github.com/NlightN22/OTPSMSProvider/storage"
+	"github.com/NlightN22/OTPSMSProvider/validator"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp"
@@ -23,16 +25,19 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-	mainLog, err := logger.New("main")
-	if err != nil {
-		panic(err)
-	}
-	defer mainLog.Sync()
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		mainLog.Fatalw("failed to load config", "err", err)
+		panic(err)
 	}
+
+	if err := logger.Init(cfg.LogLevel); err != nil {
+		panic(fmt.Errorf("logger init: %w", err))
+	}
+
+	mainLog := logger.New("main")
+
+	defer mainLog.Sync()
 
 	mainLog.Infow("Loaded configuration", "config", cfg)
 
@@ -46,6 +51,13 @@ func main() {
 		algo = otp.AlgorithmSHA512
 	}
 
+	var notifier service.Notifier
+	if cfg.Debug {
+		notifier = service.NewNoopNotifier()
+	} else {
+		notifier = service.NewSMSCService(cfg.SMSC.Login, cfg.SMSC.Password, cfg.SMSC.URL)
+	}
+
 	svc := service.NewTotpService(
 		store,
 		"TOTP Service",
@@ -54,6 +66,7 @@ func main() {
 		algo,
 		uint(cfg.Skew),
 		time.Duration(cfg.Interval),
+		notifier,
 	)
 
 	r := gin.Default()
@@ -75,6 +88,8 @@ func main() {
 		}
 		c.Next()
 	})
+
+	validator.RegisterCustomValidations()
 
 	api := api.NewAPI(svc)
 	api.RegisterRoutes(r)
