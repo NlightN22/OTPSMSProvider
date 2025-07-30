@@ -17,13 +17,14 @@ const docTemplate = `{
     "paths": {
         "/send": {
             "post": {
+                "description": "Generates TOTP for given phone and records send time",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Сгенерировать и отправить TOTP-код по номеру телефона",
+                "summary": "Generate and send TOTP code via SMS",
                 "parameters": [
                     {
                         "description": "Phone",
@@ -31,19 +32,25 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.SendRequest"
+                            "$ref": "#/definitions/api.SendRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Код отправлен",
+                        "description": "Code sent",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Ошибка",
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
                         "schema": {
                             "type": "string"
                         }
@@ -53,33 +60,40 @@ const docTemplate = `{
         },
         "/verify": {
             "post": {
+                "description": "Checks provided TOTP code for validity",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Проверить введённый TOTP-код",
+                "summary": "Validate TOTP code",
                 "parameters": [
                     {
-                        "description": "Проверка кода",
+                        "description": "Code",
                         "name": "data",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.VerifyRequest"
+                            "$ref": "#/definitions/api.VerifyRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Код верен",
+                        "description": "Code valid",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "Неверный код",
+                        "description": "Invalid code",
                         "schema": {
                             "type": "string"
                         }
@@ -89,16 +103,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "main.SendRequest": {
+        "api.SendRequest": {
             "type": "object",
+            "required": [
+                "phone"
+            ],
             "properties": {
                 "phone": {
                     "type": "string"
                 }
             }
         },
-        "main.VerifyRequest": {
+        "api.VerifyRequest": {
             "type": "object",
+            "required": [
+                "code",
+                "phone"
+            ],
             "properties": {
                 "code": {
                     "type": "string"

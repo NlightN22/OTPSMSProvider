@@ -1,16 +1,21 @@
 basePath: /
 definitions:
-  main.SendRequest:
+  api.SendRequest:
     properties:
       phone:
         type: string
+    required:
+    - phone
     type: object
-  main.VerifyRequest:
+  api.VerifyRequest:
     properties:
       code:
         type: string
       phone:
         type: string
+    required:
+    - code
+    - phone
     type: object
 host: localhost:8080
 info:
@@ -23,46 +28,56 @@ paths:
     post:
       consumes:
       - application/json
+      description: Generates TOTP for given phone and records send time
       parameters:
       - description: Phone
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/main.SendRequest'
+          $ref: '#/definitions/api.SendRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Код отправлен
+          description: Code sent
           schema:
             type: string
         "400":
-          description: Ошибка
+          description: Invalid request
           schema:
             type: string
-      summary: Сгенерировать и отправить TOTP-код по номеру телефона
+        "429":
+          description: Too many requests
+          schema:
+            type: string
+      summary: Generate and send TOTP code via SMS
   /verify:
     post:
       consumes:
       - application/json
+      description: Checks provided TOTP code for validity
       parameters:
-      - description: Проверка кода
+      - description: Code
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/main.VerifyRequest'
+          $ref: '#/definitions/api.VerifyRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Код верен
+          description: Code valid
+          schema:
+            type: string
+        "400":
+          description: Bad request
           schema:
             type: string
         "401":
-          description: Неверный код
+          description: Invalid code
           schema:
             type: string
-      summary: Проверить введённый TOTP-код
+      summary: Validate TOTP code
 swagger: "2.0"
