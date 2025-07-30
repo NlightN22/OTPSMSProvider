@@ -2,9 +2,9 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	api "github.com/NlightN22/OTPSMSProvider/api"
 	config "github.com/NlightN22/OTPSMSProvider/config"
@@ -23,20 +23,23 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-
-	cfg, _ := config.LoadConfig()
-
 	mainLog, err := logger.New("main")
 	if err != nil {
 		panic(err)
 	}
 	defer mainLog.Sync()
-
 	// init service logger
 	svcLog, err := logger.New("service")
 	if err != nil {
 		mainLog.Fatalw("failed to init service logger", "err", err)
 	}
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		mainLog.Fatalw("failed to load config", "err", err)
+	}
+
+	mainLog.Infow("Loaded configuration", "config", cfg)
 
 	store := storage.NewMemoryStorage()
 
@@ -48,14 +51,14 @@ func main() {
 		algo = otp.AlgorithmSHA512
 	}
 
-	periodSeconds := uint(cfg.Period.Seconds())
 	svc := service.NewTotpService(
 		store,
 		"TOTP Service",
-		periodSeconds,
+		uint(cfg.Period),
 		otp.Digits(cfg.Digits),
-		algo, uint(cfg.Skew),
-		cfg.Interval,
+		algo,
+		uint(cfg.Skew),
+		time.Duration(cfg.Interval),
 		svcLog,
 	)
 
@@ -82,5 +85,5 @@ func main() {
 	api := api.NewAPI(svc)
 	api.RegisterRoutes(r)
 
-	log.Fatal(r.Run(cfg.BindAddr))
+	mainLog.Fatal(r.Run(cfg.BindAddr))
 }
