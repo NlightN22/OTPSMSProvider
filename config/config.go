@@ -16,6 +16,12 @@ type Config struct {
 	Digits    int      // number of digits in TOTP code
 	Algorithm string   // hash algorithm for TOTP
 	Skew      int      // allowed clock skew in periods
+
+	SMSC struct {
+		Login    string `mapstructure:"login" env:"SMSC_LOGIN" validate:"required"`
+		Password string `mapstructure:"password" env:"SMSC_PASSWORD" validate:"required"`
+		URL      string `mapstructure:"url" env:"SMSC_URL" default:"https://smsc.ru/sys/send.php"`
+	} `mapstructure:"smsc"`
 }
 
 // LoadConfig reads environment variables and returns Config.

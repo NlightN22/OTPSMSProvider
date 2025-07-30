@@ -3,7 +3,9 @@ package service
 import (
 	"time"
 
+	logger "github.com/NlightN22/OTPSMSProvider/pkg"
 	storage "github.com/NlightN22/OTPSMSProvider/storage"
+
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"go.uber.org/zap"
@@ -31,9 +33,12 @@ type TotpService struct {
 // NewTotpService constructs TotpService with its own logger.
 func NewTotpService(store storage.Storage, issuer string,
 	period uint, digits otp.Digits, algo otp.Algorithm,
-	skew uint, interval time.Duration,
-	log *zap.SugaredLogger) *TotpService {
+	skew uint, interval time.Duration) *TotpService {
 
+	svcLog, err := logger.New("TotpService")
+	if err != nil {
+		panic(err)
+	}
 	return &TotpService{
 		store:    store,
 		issuer:   issuer,
@@ -42,7 +47,7 @@ func NewTotpService(store storage.Storage, issuer string,
 		algo:     algo,
 		skew:     skew,
 		interval: interval,
-		log:      log,
+		log:      svcLog,
 	}
 }
 

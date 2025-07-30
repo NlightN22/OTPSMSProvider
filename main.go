@@ -28,11 +28,6 @@ func main() {
 		panic(err)
 	}
 	defer mainLog.Sync()
-	// init service logger
-	svcLog, err := logger.New("service")
-	if err != nil {
-		mainLog.Fatalw("failed to init service logger", "err", err)
-	}
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -59,7 +54,6 @@ func main() {
 		algo,
 		uint(cfg.Skew),
 		time.Duration(cfg.Interval),
-		svcLog,
 	)
 
 	r := gin.Default()
