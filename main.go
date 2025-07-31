@@ -10,6 +10,7 @@ import (
 	api "github.com/NlightN22/OTPSMSProvider/api"
 	config "github.com/NlightN22/OTPSMSProvider/config"
 	_ "github.com/NlightN22/OTPSMSProvider/docs"
+	"github.com/NlightN22/OTPSMSProvider/middleware"
 	logger "github.com/NlightN22/OTPSMSProvider/pkg"
 	service "github.com/NlightN22/OTPSMSProvider/service"
 	storage "github.com/NlightN22/OTPSMSProvider/storage"
@@ -21,7 +22,7 @@ import (
 
 // @title TOTP SMS Auth API
 // @version 1.0
-// @description API для генерации и проверки TOTP-кодов, отправляемых по SMS
+// @description API for generating and verifying OTP codes sent via SMS
 // @host localhost:8080
 // @BasePath /
 func main() {
@@ -71,23 +72,12 @@ func main() {
 
 	r := gin.Default()
 
-	r.Use(func(c *gin.Context) {
-		if len(cfg.WhiteList) > 0 && cfg.WhiteList[0] != "" {
-			ip := c.ClientIP()
-			allowed := false
-			for _, w := range cfg.WhiteList {
-				if strings.TrimSpace(w) == ip {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "IP запрещён"})
-				return
-			}
-		}
-		c.Next()
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pong")
 	})
+
+	whitelistMw := middleware.NewWhitelistMiddleware(cfg.WhiteList)
+	r.Use(whitelistMw.Handler())
 
 	validator.RegisterCustomValidations()
 

@@ -1,0 +1,4 @@
+**/testdata
+**/*.md
+**/.git
+config.yaml

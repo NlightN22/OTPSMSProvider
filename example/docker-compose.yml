@@ -1,0 +1,38 @@
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"
+      - "--certificatesResolvers.le.acme.email=you@example.com"      
+      - "--certificatesResolvers.le.acme.storage=/acme/acme.json"
+      - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/acme/acme.json
+
+
+  otp-sms-provider:
+    image: your-registry/otp-sms-provider:latest    
+    container_name: otp-sms-provider
+    restart: unless-stopped
+    env_file: 
+      - .env                                      
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.otp.rule=Host(`otp.example.com`)"   
+      - "traefik.http.routers.otp.entrypoints=websecure"
+      - "traefik.http.routers.otp.tls=true"
+      - "traefik.http.routers.otp.tls.certresolver=le"
+      - "traefik.http.services.otp.loadbalancer.server.port=8080"  
+
+volumes:
+  traefik-acme:
+    driver: local
