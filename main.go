@@ -55,7 +55,7 @@ func main() {
 	if cfg.Debug {
 		notifier = service.NewNoopNotifier()
 	} else {
-		notifier = service.NewSMSCService(cfg.SMSC.Login, cfg.SMSC.Password, cfg.SMSC.URL)
+		notifier = service.NewSMSCService(cfg.SMSC.Login, cfg.SMSC.Password, cfg.PrefixText)
 	}
 
 	svc := service.NewTotpService(

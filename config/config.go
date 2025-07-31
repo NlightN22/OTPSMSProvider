@@ -10,20 +10,20 @@ import (
 
 // Config holds all application settings loaded from environment.
 type Config struct {
-	BindAddr  string   `mapstructure:"bind_addr"`                                     // address for HTTP server binding
-	WhiteList []string `mapstructure:"white_list"`                                    // allowed IPs for access control
-	Interval  int      `mapstructure:"interval" validate:"gte=0"`                     // minimum interval between SMS sends
-	Period    int      `mapstructure:"period"  validate:"gt=0"`                       // TOTP period
-	Digits    int      `mapstructure:"digits"  validate:"gt=0,lte=10"`                // number of digits in TOTP code
-	Algorithm string   `mapstructure:"algorithm" validate:"oneof=SHA1 SHA256 SHA512"` // hash algorithm for TOTP
-	Skew      int      `mapstructure:"skew"`                                          // allowed clock skew in periods
-	Debug     bool     `mapstructure:"debug" env:"TOTP_DEBUG"`
-	LogLevel  string   `mapstructure:"log_level" env:"TOTP_LOG_LEVEL" default:"info"`
+	BindAddr   string   `mapstructure:"bind_addr"`                                     // address for HTTP server binding
+	WhiteList  []string `mapstructure:"white_list"`                                    // allowed IPs for access control
+	Interval   int      `mapstructure:"interval" validate:"gte=0"`                     // minimum interval between SMS sends
+	Period     int      `mapstructure:"period"  validate:"gt=0"`                       // TOTP period
+	Digits     int      `mapstructure:"digits"  validate:"gt=0,lte=10"`                // number of digits in TOTP code
+	Algorithm  string   `mapstructure:"algorithm" validate:"oneof=SHA1 SHA256 SHA512"` // hash algorithm for TOTP
+	Skew       int      `mapstructure:"skew"`                                          // allowed clock skew in periods
+	Debug      bool     `mapstructure:"debug" env:"TOTP_DEBUG"`
+	LogLevel   string   `mapstructure:"log_level" env:"TOTP_LOG_LEVEL" default:"info"`
+	PrefixText string   `mapstructure:"prefix_text" env:"TOTP_LOG_LEVEL" default:"Your code is:"`
 
 	SMSC struct {
 		Login    string `mapstructure:"login"  validate:"required"`
 		Password string `mapstructure:"password"  validate:"required"`
-		URL      string `mapstructure:"url" default:"https://smsc.ru/sys/send.php"`
 	} `mapstructure:"smsc"`
 }
 
@@ -44,7 +44,6 @@ func LoadConfig() (*Config, error) {
 	v.SetDefault("digits", 6)
 	v.SetDefault("algorithm", "SHA1")
 	v.SetDefault("skew", 1)
-	v.SetDefault("smsc.url", "https://smsc.ru/sys/send.php")
 
 	v.SetEnvPrefix("TOTP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

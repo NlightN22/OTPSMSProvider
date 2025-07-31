@@ -93,9 +93,8 @@ func (s *TotpService) GenerateCode(key string) (string, error) {
 	s.log.Debugw("Code generated", "code", code)
 
 	s.log.Debugw("Starting send code", "phone", key)
-	message := "Ваш код:" + code
 
-	err = s.notifier.Send(key, message)
+	err = s.notifier.Send(key, code)
 	if err != nil {
 		s.log.Errorw("Send code error", "err", err)
 		return "", err
